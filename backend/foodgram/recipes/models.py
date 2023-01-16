@@ -7,14 +7,17 @@ from users.models import User
 class Tag(models.Model):
     """Модель тэга."""
     name = models.CharField(
+        "Название",
         max_length=50,
         unique=True
     )
     color = models.CharField(
+        "Цвет",
         max_length=10,
         unique=True
     )
     slug = models.CharField(
+        "Слаг",
         max_length=50,
         unique=True
     )
@@ -31,9 +34,13 @@ class Tag(models.Model):
 class Ingredient(models.Model):
     """Модель ингредиента."""
     name = models.CharField(
+        "Название",
         max_length=50,
     )
-    measurement_unit = models.CharField(max_length=200)
+    measurement_unit = models.CharField(
+        "Ед. измерения",
+        max_length=200
+    )
 
     class Meta:
         ordering = ['name', ]
@@ -50,7 +57,7 @@ class Recipe(models.Model):
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор рецепта',
-        related_name='recipe',
+        related_name='recipes',
     )
     ingredients = models.ManyToManyField(
         Ingredient,
@@ -63,8 +70,8 @@ class Recipe(models.Model):
         related_name='recipes',
     )
     image = models.ImageField(
-        "Изображение",
-        upload_to='static/recipe/',
+        "Пикча=)",
+        upload_to='static/recipes/',
         blank=True,
         null=True
     )
@@ -85,12 +92,12 @@ class Recipe(models.Model):
         auto_now_add=True)
 
     class Meta:
-        ordering = ('-pub_date',)
+        ordering = ['-pub_date', ]
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
     def __str__(self):
-        return f'Автор: {self.author.username} рецепт: {self.name}'
+        return self.name
 
 
 class IngredientsAmount(models.Model):
@@ -113,17 +120,16 @@ class IngredientsAmount(models.Model):
         verbose_name='Количество', )
 
     class Meta:
-        ordering = ('-id',)
+        ordering = ['-id', ]
         verbose_name = 'Количество'
-        verbose_name_plural = 'Количество'
         constraints = [
             models.UniqueConstraint(
                 fields=('recipe', 'ingredient'),
                 name='unique ingredient')]
 
     def __str__(self):
-        return (f'В рецепте {self.recipe.name} {self.amount} '
-                f'{self.ingredient.name} {self.ingredient.measurement_unit}')
+        return (self.ingredient.name, self.amount,
+                self.ingredient.measurement_unit)
 
 
 class Follow(models.Model):
@@ -146,13 +152,13 @@ class Follow(models.Model):
     )
 
     class Meta:
-        ordering = ('-created',)
+        ordering = ['-created', ]
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
         constraints = [
             models.UniqueConstraint(
-                fields=('user', 'author'),
-                name='unique_follow')]
+                fields=['user', 'author'],
+                name='unique_author_following')]
 
     def __str__(self):
         return '{} подписан {}'.format(self.user, self.author)
@@ -176,15 +182,15 @@ class FavoriteRecipe(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=('user', 'favorite_recipe'),
-                name='unique favourite')]
+                fields=['user', 'favorite_recipe'],
+                name='unique_favorite_recipe')]
         verbose_name = 'Избранное'
-        verbose_name_plural = 'Избранные'
-        ordering = ('id',)
+        verbose_name_plural = 'Избранное'
+        ordering = ['id', ]
 
     def __str__(self):
-        return '{} сохранил {}'.format(self.user.username,
-                                       self.favorite_recipe.name)
+        return '{} добавил в избранное рецепт: {}'.format(self.user.username,
+                                                          self.favorite_recipe.name)
 
 
 class ShoppingCart(models.Model):
@@ -203,11 +209,11 @@ class ShoppingCart(models.Model):
     )
 
     class Meta:
-        ordering = ('id',)
+        ordering = ['id', ]
         constraints = [
             models.UniqueConstraint(
                 fields=('user', 'recipe'),
-                name='unique recipe in shopping cart')]
+                name='unique_recipe_shopping_cart')]
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Список покупок'
 

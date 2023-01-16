@@ -9,28 +9,33 @@ from rest_framework.permissions import (SAFE_METHODS, IsAuthenticated,
 from rest_framework.response import Response
 
 from recipes.models import (FavoriteRecipe, Follow, Ingredient, Recipe,
-                            ShoppingCart, Tag)
+                            ShoppingCart, Tag, IngredientsAmount)
 from users.models import User
 
-from .filters import IngredientFilter, RecipesFilter
+from .filters import IngredientsFilter, RecipesFilter
 from .mixins import CreateDestroyViewSet
-from .permissions import IsAuthorOrReadOnly
+from .permissions import IsOwnerOrReadOnly
 from .serializers import (FavoriteRecipeSerializer, FollowSerializer,
-                          IngredientSerializer, RecipeEditSerializer,
-                          RecipeReadSerializer, SetPasswordSerializer,
+                          IngredientSerializer, RecipeCreatUpdateSerializer,
+                          RecipeGetSerializer, ChangePasswordSerializer,
                           ShoppingCartSerializer, TagSerializer,
-                          UserCreateSerializer, UserListSerializer)
+                          NewUserCreateSerializer, AllUserSerializer)
+import io
+from reportlab.pdfgen import canvas
+from django.http import FileResponse
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
+    permission_classes = (IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly)
     filterset_class = RecipesFilter
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
-            return RecipeReadSerializer
-        return RecipeEditSerializer
+            return RecipeGetSerializer
+        return RecipeCreatUpdateSerializer
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -40,29 +45,59 @@ class RecipeViewSet(viewsets.ModelViewSet):
         methods=('get',),
         url_path='download_shopping_cart',
         pagination_class=None)
-    def download_file(self, request):
-        user = request.user
-        if not user.shopping_cart.exists():
-            return Response(
-                'В корзине нет товаров', status=status.HTTP_400_BAD_REQUEST)
+    def download_shop_list_pdf(self, request):
+        buf = io.BytesIO()
+        canvas_page = canvas.Canvas(buf)
+        pdfmetrics.registerFont(TTFont('TNR', 'times.ttf'))
+        pdfmetrics.registerFont(TTFont('TNRB', 'timesbd.ttf'))
+        x, y = 20, 800
 
-        text = 'Список покупок:\n\n'
-        ingredient_name = 'recipe__recipe__ingredient__name'
-        ingredient_unit = 'recipe__recipe__ingredient__measurement_unit'
+        ingred_name = 'recipe__recipe__ingredient__name'
+        ingred_unit = 'recipe__recipe__ingredient__measurement_unit'
         recipe_amount = 'recipe__recipe__amount'
         amount_sum = 'recipe__recipe__amount__sum'
-        cart = user.shopping_cart.select_related('recipe').values(
-            ingredient_name, ingredient_unit).annotate(Sum(
-                recipe_amount)).order_by(ingredient_name)
-        for _ in cart:
-            text += (
-                f'{_[ingredient_name]} ({_[ingredient_unit]})'
-                f' — {_[amount_sum]}\n'
+
+        user = request.user
+        shopping_cart = user.shopping_cart.select_related('recipe').values(
+            ingred_name,
+            ingred_unit
+        ).annotate(Sum(recipe_amount)).order_by(ingred_name)
+
+        if shopping_cart:
+            indent = 10
+            canvas_page.setFont('TNRB', 30)
+            canvas_page.drawString(x, y, 'Список необходимых ингредиентов:')
+            y -= 20
+            canvas_page.setFont('TNR', 20)
+            for i, recipe in enumerate(shopping_cart, start=1):
+                canvas_page.drawString(
+                    x, y - indent,
+                    f'{i}. {recipe[ingred_name].capitalize()} - '
+                    f'{recipe[amount_sum]} '
+                    f'{recipe[ingred_unit]}.')
+                y -= 30
+                if y <= 50:
+                    canvas_page.showPage()
+                    y = 900
+            canvas_page.save()
+            buf.seek(0)
+            return FileResponse(
+                buf,
+                as_attachment=True,
+                filename="Shopping_list.pdf"
             )
-        response = HttpResponse(text, content_type='text/plain')
-        filename = 'shopping_list.txt'
-        response['Content-Disposition'] = f'attachment; filename={filename}'
-        return response
+        canvas_page.setFont('TNRB', 40)
+        canvas_page.drawString(
+            x, y,
+            'Рецепты не добавлялись в список покупок!'
+        )
+        canvas_page.save()
+        buf.seek(0)
+        return FileResponse(
+            buf,
+            as_attachment=True,
+            filename="Shopping_list.pdf"
+        )
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -70,7 +105,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
     pagination_class = None
-    filterset_class = IngredientFilter
+    filterset_class = IngredientsFilter
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -86,10 +121,10 @@ class CustomUserViewSet(UserViewSet):
 
     def get_serializer_class(self):
         if self.action == 'set_password':
-            return SetPasswordSerializer
+            return ChangePasswordSerializer
         if self.action == 'create':
-            return UserCreateSerializer
-        return UserListSerializer
+            return NewUserCreateSerializer
+        return AllUserSerializer
 
     def get_permissions(self):
         if self.action == 'me':
@@ -105,7 +140,8 @@ class CustomUserViewSet(UserViewSet):
         serializer = FollowSerializer(
             pages,
             many=True,
-            context={'request': request},)
+            context={'request': request},
+        )
         return self.get_paginated_response(serializer.data)
 
 
@@ -134,8 +170,7 @@ class FollowViewSet(CreateDestroyViewSet):
         get_object_or_404(User, id=user_id)
         if not Follow.objects.filter(
                 user=request.user, author_id=user_id).exists():
-            return Response({'errors': 'Вы не были подписаны на автора'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
         get_object_or_404(
             Follow,
             user=request.user,
@@ -167,16 +202,17 @@ class FavoriteRecipeViewSet(CreateDestroyViewSet):
 
     @action(methods=('delete',), detail=True)
     def delete(self, request, recipe_id):
-        u = request.user
-        if not u.favorite.select_related(
+        user = request.user
+        if not user.favorite.select_related(
                 'favorite_recipe').filter(
-                    favorite_recipe_id=recipe_id).exists():
-            return Response({'errors': 'Рецепт не в избранном'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            favorite_recipe_id=recipe_id
+        ).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
         get_object_or_404(
             FavoriteRecipe,
             user=request.user,
-            favorite_recipe_id=recipe_id).delete()
+            favorite_recipe_id=recipe_id
+        ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -204,13 +240,13 @@ class ShoppingCartViewSet(CreateDestroyViewSet):
     @action(methods=('delete',), detail=True)
     def delete(self, request, recipe_id):
         user = request.user
-        if not user.shopping_cart.select_related(
-                'recipe').filter(
-                    recipe_id=recipe_id).exists():
-            return Response({'errors': 'Рецепта нет в корзине'},
-                            status=status.HTTP_400_BAD_REQUEST)
+        if not user.shopping_cart.select_related('recipe').filter(
+                recipe_id=recipe_id
+        ).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
         get_object_or_404(
             ShoppingCart,
             user=request.user,
-            recipe=recipe_id).delete()
+            recipe=recipe_id
+        ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

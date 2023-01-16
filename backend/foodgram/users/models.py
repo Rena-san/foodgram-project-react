@@ -10,6 +10,11 @@ class User(AbstractUser):
         max_length=254,
         unique=True
     )
+    username = models.CharField(
+        'Логин',
+        max_length=150,
+        unique=True
+    )
     first_name = models.CharField(
         'Имя',
         max_length=150,
@@ -20,11 +25,7 @@ class User(AbstractUser):
         max_length=150,
         blank=False
     )
-    username = models.CharField(
-        'Логин',
-        max_length=150,
-        unique=True
-    )
+
 
     class Meta:
         ordering = ['-pk',]

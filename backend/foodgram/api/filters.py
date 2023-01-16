@@ -4,8 +4,8 @@ from recipes.models import Ingredient, Recipe, Tag
 from users.models import User
 
 
-class IngredientFilter(FilterSet):
-    name = filters.CharFilter(lookup_expr='istartswith')
+class IngredientsFilter(FilterSet):
+    name = filters.CharFilter(lookup_expr='icontains')
 
     class Meta:
         model = Ingredient
@@ -13,13 +13,13 @@ class IngredientFilter(FilterSet):
 
 
 class RecipesFilter(FilterSet):
+    author = filters.ModelChoiceFilter(
+        queryset=User.objects.all()
+    )
     tags = filters.ModelMultipleChoiceFilter(
         queryset=Tag.objects.all(),
         field_name='tags__slug',
-        to_field_name='slug',
-    )
-    author = filters.ModelChoiceFilter(
-        queryset=User.objects.all(),
+        to_field_name='slug'
     )
     is_favorited = filters.BooleanFilter(
         method='get_is_favorited'
@@ -30,15 +30,15 @@ class RecipesFilter(FilterSet):
 
     class Meta:
         model = Recipe
-        fields = ['is_favorited', 'author', 'tags', 'is_in_shopping_cart']
+        fields = ['author', 'tags', 'is_favorited', 'is_in_shopping_cart']
 
-    def get_is_favorited(self, queryset, name, value):
+    def get_is_favorited(self, queryset, value):
         user = self.request.user
         if value and user.is_authenticated:
             return queryset.filter(favorite_recipe__user=user)
         return queryset
 
-    def get_is_in_shopping_cart(self, queryset, name, value):
+    def get_is_in_shopping_cart(self, queryset, value):
         user = self.request.user
         if value and user.is_authenticated:
             return queryset.filter(recipe_shopping_cart__user=user)
