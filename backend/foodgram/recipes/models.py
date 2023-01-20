@@ -48,7 +48,7 @@ class Ingredient(models.Model):
         verbose_name_plural = 'Ингредиенты'
 
     def __str__(self):
-        return self.name
+        return f'{self.name} ({self.measurement_unit})'
 
 
 class Recipe(models.Model):
@@ -71,9 +71,10 @@ class Recipe(models.Model):
     )
     image = models.ImageField(
         "Пикча=)",
-        upload_to='static/recipes/',
+        upload_to='static/recipes/images/',
         blank=True,
-        null=True
+        null=True,
+        default=None
     )
     name = models.CharField(
         'Название рецепта',
@@ -128,8 +129,8 @@ class IngredientsAmount(models.Model):
                 name='unique ingredient')]
 
     def __str__(self):
-        return (self.ingredient.name, self.amount,
-                self.ingredient.measurement_unit)
+        return (f'{self.ingredient.name}, {self.amount},'
+                f'{self.ingredient.measurement_unit}')
 
 
 class Follow(models.Model):

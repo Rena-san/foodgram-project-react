@@ -14,7 +14,7 @@ from users.models import User
 
 from .filters import IngredientsFilter, RecipesFilter
 from .mixins import CreateDestroyViewSet
-from .permissions import IsOwnerOrReadOnly
+from .permissions import IsOwnerOrReadOnly, IsOwner
 from .serializers import (FavoriteRecipeSerializer, FollowSerializer,
                           IngredientSerializer, RecipeCreatUpdateSerializer,
                           RecipeGetSerializer, ChangePasswordSerializer,
@@ -33,7 +33,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filterset_class = RecipesFilter
 
     def get_serializer_class(self):
-        if self.request.method in SAFE_METHODS:
+        if self.request.method == "GET":
             return RecipeGetSerializer
         return RecipeCreatUpdateSerializer
 
@@ -125,11 +125,20 @@ class CustomUserViewSet(UserViewSet):
         if self.action == 'create':
             return NewUserCreateSerializer
         return AllUserSerializer
+    #
+    # def get_permissions(self):
+    #     if self.action == 'me':
+    #         self.permission_classes = [IsAuthenticated]
+    #     return super().get_permissions()
 
-    def get_permissions(self):
-        if self.action == 'me':
-            self.permission_classes = [IsAuthenticated]
-        return super().get_permissions()
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_200_OK, headers=headers
+        )
 
     @action(
         detail=False,
@@ -181,9 +190,12 @@ class FollowViewSet(CreateDestroyViewSet):
 
 class FavoriteRecipeViewSet(CreateDestroyViewSet):
     serializer_class = FavoriteRecipeSerializer
+    # permission_classes = [IsOwner, ]
+    queryset = FavoriteRecipe.objects.all()
+    pagination_class = None
 
     def get_queryset(self):
-        user = self.request.user.id
+        user = self.request.user
         return FavoriteRecipe.objects.filter(user=user)
 
     def get_serializer_context(self):
@@ -192,15 +204,11 @@ class FavoriteRecipeViewSet(CreateDestroyViewSet):
         return context
 
     def perform_create(self, serializer):
-        serializer.save(
-            user=self.request.user,
-            favorite_recipe=get_object_or_404(
-                Recipe,
-                id=self.kwargs.get('recipe_id')
-            )
-        )
+        user = self.request.user
+        recipe_id = self.kwargs.get('recipe_id')
+        favorite_recipe = get_object_or_404(Recipe, id=recipe_id)
+        serializer.save(user=user, favorite_recipe=favorite_recipe)
 
-    @action(methods=('delete',), detail=True)
     def delete(self, request, recipe_id):
         user = request.user
         if not user.favorite.select_related(

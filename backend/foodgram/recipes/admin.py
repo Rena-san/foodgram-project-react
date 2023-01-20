@@ -6,11 +6,12 @@ from .models import (FavoriteRecipe, Follow, Ingredient, IngredientsAmount,
 
 class IngredientsAmountAdmin(admin.TabularInline):
     model = IngredientsAmount
-    autocomplete_fields = ('ingredient',)
+    # autocomplete_fields = ('ingredient',)
 
 
 @admin.register(Recipe)
-class RecipeAdmin(admin.ModelAdmin):
+class RecipeAdmin(admin.ModelAdmin, ):
+    inlines = (IngredientsAmountAdmin,)
     list_display = (
         'id', 'name', 'author', 'text', 'pub_date', 'get_fav_amount'
     )

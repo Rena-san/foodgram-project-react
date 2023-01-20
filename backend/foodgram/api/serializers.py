@@ -1,13 +1,15 @@
 from django.contrib.auth.hashers import check_password
 from djoser.serializers import (PasswordSerializer, UserCreateSerializer,
                                 UserSerializer)
-from drf_extra_fields.fields import Base64ImageField
+# from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from recipes.models import (FavoriteRecipe, Follow, Ingredient,
                             IngredientsAmount, Recipe, ShoppingCart, Tag)
 from users.models import User
 from .mixins import FollowMixin
+import base64
+from django.core.files.base import ContentFile
 
 
 class AllUserSerializer(UserSerializer, FollowMixin):
@@ -92,19 +94,19 @@ class RecipeGetSerializer(serializers.ModelSerializer):
         )
 
     def get_is_favorited(self, obj):
-        user = self.context['request'].user.is_authenticated
-        if user:
+        user = self.context['request'].user
+        if user.is_authenticated:
             return FavoriteRecipe.objects.filter(
-                user=self.context['request'].user,
+                user=user,
                 favorite_recipe=obj
             ).exists()
         return False
 
     def get_is_in_shopping_cart(self, obj):
-        user = self.context['request'].user.is_authenticated
-        if user:
+        user = self.context['request'].user
+        if user.is_authenticated:
             return ShoppingCart.objects.filter(
-                user=self.context['request'].user,
+                user=user,
                 recipe=obj
             ).exists()
         return False
@@ -120,16 +122,25 @@ class IngredientsEditSerializer(serializers.ModelSerializer):
         fields = ('id', 'amount')
 
 
+class Base64ImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.startswith('data:image'):
+            format, imgstr = data.split(';base64,')
+            ext = format.split('/')[-1]
+
+            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+
+        return super().to_internal_value(data)
+
+
 class RecipeCreatUpdateSerializer(serializers.ModelSerializer):
-    image = Base64ImageField(
-        max_length=None,
-        use_url=True)
     ingredients = IngredientsEditSerializer(
         many=True)
     author = AllUserSerializer(read_only=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(), many=True
     )
+    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Recipe
@@ -163,7 +174,7 @@ class RecipeCreatUpdateSerializer(serializers.ModelSerializer):
         return RecipeGetSerializer(
             instance,
             context={
-                'request': self.context.get('request')
+                'request': self.context['request']
             }).data
 
 
@@ -245,12 +256,14 @@ class FavoriteRecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
     def validate(self, data):
-        user = self.context.get('request').user
-        recipe = self.context.get('recipe_id')
-        if FavoriteRecipe.objects.filter(user=user,
-                                         favorite_recipe=recipe).exists():
+        user = self.context['request'].user
+        recipe_id = self.context['recipe_id']
+        if FavoriteRecipe.objects.filter(
+                user=user,
+                favorite_recipe_id=recipe_id
+        ).exists():
             raise serializers.ValidationError({
-                'errors': 'Рецепт уже в избранном'})
+                'favorite_recipe_error': 'Рецепт уже в избранном'})
         return data
 
 

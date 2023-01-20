@@ -1,0 +1,69 @@
+[
+  {
+    "model": "users.user",
+    "pk": 2,
+    "fields": {
+      "email": "leo@mail.ru",
+      "username": "leo",
+      "first_name": " Леопольд",
+      "last_name": "Кот",
+      "password": "friendship"
+    }
+    },
+  {
+    "model": "users.user",
+    "pk": 3,
+    "fields": {
+      "email": "doraemon@mail.ru",
+      "username": "doraemon",
+      "first_name": " Дораэмон",
+      "last_name": "Кибер_Кот",
+      "password": "doroyaki"
+       }
+    },
+  {
+    "model": "users.user",
+    "pk": 4,
+    "fields": {
+      "email": "matrosskin@mail.ru",
+      "username": "matrosskin",
+      "first_name": " Матроскин",
+      "last_name": "Кот",
+      "password": "figbam"
+       }
+    },
+  {
+    "model": "users.user",
+    "pk": 5,
+    "fields": {
+      "email": "gafff@mail.ru",
+      "username": "gafff",
+      "first_name": " Гав",
+      "last_name": "Котенок",
+      "password": "sharik"
+       }
+
+    },
+    {
+    "model": "users.user",
+    "pk": 6,
+    "fields": {
+      "email": "garfild@mail.ru",
+      "username": "garfildTheKing",
+      "first_name": " Garfild",
+      "last_name": "The british cat",
+      "password": "lazania"
+       }
+    },
+  {
+    "model": "users.user",
+    "pk": 7,
+    "fields": {
+      "email": "tom@mail.ru",
+      "username": "tom",
+      "first_name": " Tom",
+      "last_name": "The_cat",
+      "password": "jerry"
+       }
+    }
+    ]
