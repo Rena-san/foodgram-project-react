@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import (SAFE_METHODS, IsAuthenticated,
+from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 
@@ -14,17 +14,12 @@ from users.models import User
 
 from .filters import IngredientsFilter, RecipesFilter
 from .mixins import CreateDestroyViewSet
-from .permissions import IsOwnerOrReadOnly, IsOwner
+from .permissions import IsOwnerOrReadOnly
 from .serializers import (FavoriteRecipeSerializer, FollowSerializer,
                           IngredientSerializer, RecipeCreatUpdateSerializer,
                           RecipeGetSerializer, ChangePasswordSerializer,
                           ShoppingCartSerializer, TagSerializer,
                           NewUserCreateSerializer, AllUserSerializer)
-import io
-from reportlab.pdfgen import canvas
-from django.http import FileResponse
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -42,62 +37,32 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=('get',),
+        methods=('GET',),
         url_path='download_shopping_cart',
         pagination_class=None)
-    def download_shop_list_pdf(self, request):
-        buf = io.BytesIO()
-        canvas_page = canvas.Canvas(buf)
-        pdfmetrics.registerFont(TTFont('TNR', 'times.ttf'))
-        pdfmetrics.registerFont(TTFont('TNRB', 'timesbd.ttf'))
-        x, y = 20, 800
+    def download_file(self, request):
+        user = request.user
+        if not user.shopping_cart.exists():
+            return Response(
+                'Список покупок пуст.', status=status.HTTP_400_BAD_REQUEST)
 
+        text = 'Список покупок:\n\n'
         ingred_name = 'recipe__recipe__ingredient__name'
         ingred_unit = 'recipe__recipe__ingredient__measurement_unit'
-        recipe_amount = 'recipe__recipe__amount'
-        amount_sum = 'recipe__recipe__amount__sum'
-
-        user = request.user
-        shopping_cart = user.shopping_cart.select_related('recipe').values(
-            ingred_name,
-            ingred_unit
-        ).annotate(Sum(recipe_amount)).order_by(ingred_name)
-
-        if shopping_cart:
-            indent = 10
-            canvas_page.setFont('TNRB', 30)
-            canvas_page.drawString(x, y, 'Список необходимых ингредиентов:')
-            y -= 20
-            canvas_page.setFont('TNR', 20)
-            for i, recipe in enumerate(shopping_cart, start=1):
-                canvas_page.drawString(
-                    x, y - indent,
-                    f'{i}. {recipe[ingred_name].capitalize()} - '
-                    f'{recipe[amount_sum]} '
-                    f'{recipe[ingred_unit]}.')
-                y -= 30
-                if y <= 50:
-                    canvas_page.showPage()
-                    y = 900
-            canvas_page.save()
-            buf.seek(0)
-            return FileResponse(
-                buf,
-                as_attachment=True,
-                filename="Shopping_list.pdf"
+        ingred_amount = 'recipe__recipe__amount'
+        ingred_sum = 'recipe__recipe__amount__sum'
+        cart = user.shopping_cart.select_related('recipe').values(
+            ingred_name, ingred_unit).annotate(Sum(ingred_amount)
+                                               ).order_by(ingred_name)
+        for item in cart:
+            text += (
+                f'{item[ingred_name]} ({item[ingred_unit]})'
+                f' — {item[ingred_sum]}\n'
             )
-        canvas_page.setFont('TNRB', 40)
-        canvas_page.drawString(
-            x, y,
-            'Рецепты не добавлялись в список покупок!'
-        )
-        canvas_page.save()
-        buf.seek(0)
-        return FileResponse(
-            buf,
-            as_attachment=True,
-            filename="Shopping_list.pdf"
-        )
+        response = HttpResponse(text, content_type='text/plain')
+        filename = 'shopping_list.txt'
+        response['Content-Disposition'] = f'attachment; filename={filename}'
+        return response
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -125,11 +90,6 @@ class CustomUserViewSet(UserViewSet):
         if self.action == 'create':
             return NewUserCreateSerializer
         return AllUserSerializer
-    #
-    # def get_permissions(self):
-    #     if self.action == 'me':
-    #         self.permission_classes = [IsAuthenticated]
-    #     return super().get_permissions()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -174,7 +134,7 @@ class FollowViewSet(CreateDestroyViewSet):
             )
         )
 
-    @action(methods=('delete',), detail=True)
+    @action(methods=('DELETE',), detail=True)
     def delete(self, request, user_id):
         get_object_or_404(User, id=user_id)
         if not Follow.objects.filter(
@@ -190,7 +150,6 @@ class FollowViewSet(CreateDestroyViewSet):
 
 class FavoriteRecipeViewSet(CreateDestroyViewSet):
     serializer_class = FavoriteRecipeSerializer
-    # permission_classes = [IsOwner, ]
     queryset = FavoriteRecipe.objects.all()
     pagination_class = None
 
@@ -218,7 +177,7 @@ class FavoriteRecipeViewSet(CreateDestroyViewSet):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         get_object_or_404(
             FavoriteRecipe,
-            user=request.user,
+            user=user,
             favorite_recipe_id=recipe_id
         ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -237,8 +196,9 @@ class ShoppingCartViewSet(CreateDestroyViewSet):
         return context
 
     def perform_create(self, serializer):
+        user = self.request.user
         serializer.save(
-            user=self.request.user,
+            user=user,
             recipe=get_object_or_404(
                 Recipe,
                 id=self.kwargs.get('recipe_id')
@@ -254,7 +214,7 @@ class ShoppingCartViewSet(CreateDestroyViewSet):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         get_object_or_404(
             ShoppingCart,
-            user=request.user,
+            user=user,
             recipe=recipe_id
         ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,7 +1,6 @@
 from django.contrib.auth.hashers import check_password
 from djoser.serializers import (PasswordSerializer, UserCreateSerializer,
                                 UserSerializer)
-# from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from recipes.models import (FavoriteRecipe, Follow, Ingredient,
@@ -43,7 +42,10 @@ class ChangePasswordSerializer(PasswordSerializer):
         if data['new_password'] == data['current_password']:
             raise serializers.ValidationError({
                 "new_password": "Пароли не должны совпадать"})
-        password_user_entered = check_password(data['current_password'], user.password)
+        password_user_entered = check_password(
+            data['current_password'],
+            user.password
+        )
         if password_user_entered is False:
             raise serializers.ValidationError({
                 "current_password": "Неверный пароль"})
@@ -112,8 +114,7 @@ class RecipeGetSerializer(serializers.ModelSerializer):
         return False
 
 
-class IngredientsEditSerializer(serializers.ModelSerializer):
-    """ Сериализатор добавления ингредиента в рецепт. """
+class IngredientsAddSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
     amount = serializers.IntegerField()
 
@@ -134,7 +135,7 @@ class Base64ImageField(serializers.ImageField):
 
 
 class RecipeCreatUpdateSerializer(serializers.ModelSerializer):
-    ingredients = IngredientsEditSerializer(
+    ingredients = IngredientsAddSerializer(
         many=True)
     author = AllUserSerializer(read_only=True)
     tags = serializers.PrimaryKeyRelatedField(

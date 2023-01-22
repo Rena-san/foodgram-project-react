@@ -5,7 +5,6 @@ from users.models import User
 
 
 class Tag(models.Model):
-    """Модель тэга."""
     name = models.CharField(
         "Название",
         max_length=50,
@@ -32,7 +31,6 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
-    """Модель ингредиента."""
     name = models.CharField(
         "Название",
         max_length=200,
@@ -52,7 +50,6 @@ class Ingredient(models.Model):
 
 
 class Recipe(models.Model):
-    """Модель рецепта."""
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -71,7 +68,7 @@ class Recipe(models.Model):
     )
     image = models.ImageField(
         "Пикча=)",
-        upload_to='static/recipes/images/',
+        upload_to='recipes/images/',
         blank=True,
         null=True,
         default=None
@@ -103,6 +100,7 @@ class Recipe(models.Model):
 
 class IngredientsAmount(models.Model):
     """Модель количества ингредиентов в рецепте."""
+
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
@@ -134,7 +132,6 @@ class IngredientsAmount(models.Model):
 
 
 class Follow(models.Model):
-    """Модель подписки на автора рецепта."""
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -166,7 +163,6 @@ class Follow(models.Model):
 
 
 class FavoriteRecipe(models.Model):
-    """Модель избранного."""
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -190,12 +186,13 @@ class FavoriteRecipe(models.Model):
         ordering = ['id', ]
 
     def __str__(self):
-        return '{} добавил в избранное рецепт: {}'.format(self.user.username,
-                                                          self.favorite_recipe.name)
+        return '{} добавил в избранное рецепт: {}'.format(
+            self.user.username,
+            self.favorite_recipe.name
+        )
 
 
 class ShoppingCart(models.Model):
-    """Модель списка покупок."""
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

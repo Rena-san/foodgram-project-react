@@ -6,7 +6,6 @@ from .models import (FavoriteRecipe, Follow, Ingredient, IngredientsAmount,
 
 class IngredientsAmountAdmin(admin.TabularInline):
     model = IngredientsAmount
-    # autocomplete_fields = ('ingredient',)
 
 
 @admin.register(Recipe)
