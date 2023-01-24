@@ -9,9 +9,7 @@ services:
       - ./.env
 
   backend:
-    build:
-      context: ../backend/foodgram
-      dockerfile: Dockerfile
+    image: owl1309/foodgram_backend:latest
     restart: always
     volumes:
       - static_value:/app/static/
@@ -22,9 +20,7 @@ services:
       - ./.env
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: owl1309/foodgram_frontend:latest
     restart: always
     volumes:
       - ../frontend/:/app/result_build/
