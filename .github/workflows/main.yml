@@ -39,7 +39,7 @@ jobs:
           push: true
           context: ./backend
           tags: ${{ secrets.DOCKER_USERNAME }}/foodgram_backend:latest
-#          dockerfile: ./foodgram/Dockerfile
+          dockerfile: ./foodgram/Dockerfile
 #  deploy:
 #    runs-on: ubuntu-latest
 #    needs: build_and_push_to_docker_hub
