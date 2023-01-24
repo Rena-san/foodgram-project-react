@@ -1,4 +1,7 @@
+import base64
+
 from django.contrib.auth.hashers import check_password
+from django.core.files.base import ContentFile
 from djoser.serializers import (PasswordSerializer, UserCreateSerializer,
                                 UserSerializer)
 from rest_framework import serializers
@@ -6,9 +9,8 @@ from rest_framework import serializers
 from recipes.models import (FavoriteRecipe, Follow, Ingredient,
                             IngredientsAmount, Recipe, ShoppingCart, Tag)
 from users.models import User
+
 from .mixins import FollowMixin
-import base64
-from django.core.files.base import ContentFile
 
 
 class AllUserSerializer(UserSerializer, FollowMixin):
@@ -95,23 +97,18 @@ class RecipeGetSerializer(serializers.ModelSerializer):
             'is_in_shopping_cart', 'name', 'image', 'text', 'cooking_time'
         )
 
+    def __check_model(self, obj, model):
+        request = self.context.get('request')
+        return (request.user.is_authenticated and model.objects.filter(
+            user=request.user,
+            recipe=obj
+        ).exists())
+
     def get_is_favorited(self, obj):
-        user = self.context['request'].user
-        if user.is_authenticated:
-            return FavoriteRecipe.objects.filter(
-                user=user,
-                favorite_recipe=obj
-            ).exists()
-        return False
+        return self.__check_model(obj, FavoriteRecipe)
 
     def get_is_in_shopping_cart(self, obj):
-        user = self.context['request'].user
-        if user.is_authenticated:
-            return ShoppingCart.objects.filter(
-                user=user,
-                recipe=obj
-            ).exists()
-        return False
+        return self.__check_model(obj, ShoppingCart)
 
 
 class IngredientsAddSerializer(serializers.ModelSerializer):
@@ -239,17 +236,17 @@ class FollowSerializer(serializers.ModelSerializer, FollowMixin):
 
 class FavoriteRecipeSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(
-        source='favorite_recipe.id',
+        source='recipe.id',
     )
     name = serializers.ReadOnlyField(
-        source='favorite_recipe.name',
+        source='recipe.name',
     )
     image = serializers.CharField(
-        source='favorite_recipe.image',
+        source='recipe.image',
         read_only=True,
     )
     cooking_time = serializers.ReadOnlyField(
-        source='favorite_recipe.cooking_time',
+        source='recipe.cooking_time',
     )
 
     class Meta:
@@ -261,7 +258,7 @@ class FavoriteRecipeSerializer(serializers.ModelSerializer):
         recipe_id = self.context['recipe_id']
         if FavoriteRecipe.objects.filter(
                 user=user,
-                favorite_recipe_id=recipe_id
+                recipe_id=recipe_id
         ).exists():
             raise serializers.ValidationError({
                 'favorite_recipe_error': 'Рецепт уже в избранном'})

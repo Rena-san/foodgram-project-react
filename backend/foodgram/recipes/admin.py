@@ -17,7 +17,7 @@ class RecipeAdmin(admin.ModelAdmin, ):
     list_filter = ('name', 'author', 'tags', 'pub_date')
 
     def get_fav_amount(self, obj):
-        amount = FavoriteRecipe.objects.filter(favorite_recipe=obj).count()
+        amount = FavoriteRecipe.objects.filter(recipe=obj).count()
         return amount
 
     get_fav_amount.short_description = "Кол-во добавлений в изб."
@@ -43,10 +43,10 @@ class TagAdmin(admin.ModelAdmin):
 @admin.register(FavoriteRecipe)
 class FavoriteRecipeAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'user', 'favorite_recipe'
+        'id', 'user', 'recipe'
     )
-    search_fields = ('favorite_recipe',)
-    list_filter = ('id', 'user', 'favorite_recipe')
+    search_fields = ('recipe',)
+    list_filter = ('id', 'user', 'recipe')
 
 
 @admin.register(Follow)

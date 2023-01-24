@@ -22,7 +22,7 @@ class Tag(models.Model):
     )
 
     class Meta:
-        ordering = ['name', ]
+        ordering = ('name', )
         verbose_name = 'Тэг'
         verbose_name_plural = 'Тэги'
 
@@ -41,7 +41,7 @@ class Ingredient(models.Model):
     )
 
     class Meta:
-        ordering = ['name', ]
+        ordering = ('name', )
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
 
@@ -90,7 +90,7 @@ class Recipe(models.Model):
         auto_now_add=True)
 
     class Meta:
-        ordering = ['-pub_date', ]
+        ordering = ('-pub_date', )
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
@@ -119,7 +119,7 @@ class IngredientsAmount(models.Model):
         verbose_name='Количество', )
 
     class Meta:
-        ordering = ['-id', ]
+        ordering = ('-id', )
         verbose_name = 'Количество'
         constraints = [
             models.UniqueConstraint(
@@ -150,7 +150,7 @@ class Follow(models.Model):
     )
 
     class Meta:
-        ordering = ['-created', ]
+        ordering = ('-created', )
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
         constraints = [
@@ -169,26 +169,26 @@ class FavoriteRecipe(models.Model):
         related_name='favorite',
         verbose_name='Пользователь'
     )
-    favorite_recipe = models.ForeignKey(
+    recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='favorite_recipe',
+        related_name='favorite',
         verbose_name='Избранный рецепт'
     )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'favorite_recipe'],
+                fields=['user', 'recipe'],
                 name='unique_favorite_recipe')]
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
-        ordering = ['id', ]
+        ordering = ('id', )
 
     def __str__(self):
         return '{} добавил в избранное рецепт: {}'.format(
             self.user.username,
-            self.favorite_recipe.name
+            self.recipe.name
         )
 
 
@@ -202,12 +202,12 @@ class ShoppingCart(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='recipe_shopping_cart',
+        related_name='shopping_cart',
         verbose_name='Рецепт'
     )
 
     class Meta:
-        ordering = ['id', ]
+        ordering = ('id', )
         constraints = [
             models.UniqueConstraint(
                 fields=('user', 'recipe'),

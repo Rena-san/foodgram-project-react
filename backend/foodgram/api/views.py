@@ -8,18 +8,18 @@ from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 
-from recipes.models import (FavoriteRecipe, Follow, Ingredient, Recipe,
-                            ShoppingCart, Tag, IngredientsAmount)
+from recipes.models import (FavoriteRecipe, Follow, Ingredient,
+                            IngredientsAmount, Recipe, ShoppingCart, Tag)
 from users.models import User
 
 from .filters import IngredientsFilter, RecipesFilter
-from .mixins import CreateDestroyViewSet
+from .mixins import BaseClassViewSets, CreateDestroyViewSet
 from .permissions import IsOwnerOrReadOnly
-from .serializers import (FavoriteRecipeSerializer, FollowSerializer,
-                          IngredientSerializer, RecipeCreatUpdateSerializer,
-                          RecipeGetSerializer, ChangePasswordSerializer,
-                          ShoppingCartSerializer, TagSerializer,
-                          NewUserCreateSerializer, AllUserSerializer)
+from .serializers import (AllUserSerializer, ChangePasswordSerializer,
+                          FavoriteRecipeSerializer, FollowSerializer,
+                          IngredientSerializer, NewUserCreateSerializer,
+                          RecipeCreatUpdateSerializer, RecipeGetSerializer,
+                          ShoppingCartSerializer, TagSerializer)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -148,7 +148,7 @@ class FollowViewSet(CreateDestroyViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class FavoriteRecipeViewSet(CreateDestroyViewSet):
+class FavoriteRecipeViewSet(BaseClassViewSets):
     serializer_class = FavoriteRecipeSerializer
     queryset = FavoriteRecipe.objects.all()
     pagination_class = None
@@ -157,64 +157,18 @@ class FavoriteRecipeViewSet(CreateDestroyViewSet):
         user = self.request.user
         return FavoriteRecipe.objects.filter(user=user)
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['recipe_id'] = self.kwargs.get('recipe_id')
-        return context
-
-    def perform_create(self, serializer):
-        user = self.request.user
-        recipe_id = self.kwargs.get('recipe_id')
-        favorite_recipe = get_object_or_404(Recipe, id=recipe_id)
-        serializer.save(user=user, favorite_recipe=favorite_recipe)
-
+    @action(methods=('DELETE',), detail=True)
     def delete(self, request, recipe_id):
-        user = request.user
-        if not user.favorite.select_related(
-                'favorite_recipe').filter(
-            favorite_recipe_id=recipe_id
-        ).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        get_object_or_404(
-            FavoriteRecipe,
-            user=user,
-            favorite_recipe_id=recipe_id
-        ).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return self.destroy(request, recipe_id, FavoriteRecipe)
 
 
-class ShoppingCartViewSet(CreateDestroyViewSet):
+class ShoppingCartViewSet(BaseClassViewSets):
     serializer_class = ShoppingCartSerializer
 
     def get_queryset(self):
         user = self.request.user.id
         return ShoppingCart.objects.filter(user=user)
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['recipe_id'] = self.kwargs.get('recipe_id')
-        return context
-
-    def perform_create(self, serializer):
-        user = self.request.user
-        serializer.save(
-            user=user,
-            recipe=get_object_or_404(
-                Recipe,
-                id=self.kwargs.get('recipe_id')
-            )
-        )
-
-    @action(methods=('delete',), detail=True)
+    @action(methods=('DELETE',), detail=True)
     def delete(self, request, recipe_id):
-        user = request.user
-        if not user.shopping_cart.select_related('recipe').filter(
-                recipe_id=recipe_id
-        ).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        get_object_or_404(
-            ShoppingCart,
-            user=user,
-            recipe=recipe_id
-        ).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return self.destroy(request, recipe_id, ShoppingCart)
