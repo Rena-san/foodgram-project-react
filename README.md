@@ -26,7 +26,7 @@ git clone <foodgram-project>
 ```
 scp docker-compose.yml <username>@<host>:/home/<username>/
 scp nginx.conf <username>@<host>:/home/<username>/
-scp .env <username>@<host>:/home/<username>/
+
 ```
 3. Установите docker и docker-compose:
 ```
