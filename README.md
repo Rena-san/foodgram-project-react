@@ -1,6 +1,5 @@
 # Foodgram - сайт для публикации рецептов
-![workflow](https://github.com/Rena-san/foodgram-project-react
-/actions/workflows/main.yaml/badge.svg)
+![main_workflow](https://github.com/Rena-san/foodgram-project-react/actions/workflows/main.yaml/badge.svg)
 ---
 ### Сервис доступен по адресу:
 158.160.48.65
