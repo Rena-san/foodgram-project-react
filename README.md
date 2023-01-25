@@ -1,5 +1,5 @@
 # Foodgram - сайт для публикации рецептов
-![yamdb_workflow](https://github.com/Rena-san/foodgram-project-react
+![main_workflow](https://github.com/Rena-san/foodgram-project-react
 /actions/workflows/main.yaml/badge.svg)
 ---
 ### Сервис доступен по адресу:
