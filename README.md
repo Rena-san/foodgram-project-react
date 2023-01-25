@@ -1,9 +1,9 @@
 # Foodgram - сайт для публикации рецептов
-
+![yamdb_workflow](https://github.com/Rena-san/foodgram-project-react
+/actions/workflows/main.yaml/badge.svg)
 ---
 ### Сервис доступен по адресу:
 158.160.48.65
-
 ### Возможности сервиса:
 - Размещение различных рецептов;
 - Просмотр рецептов пользователей сайта;
@@ -26,6 +26,7 @@ git clone <foodgram-project>
 ```
 scp docker-compose.yml <username>@<host>:/home/<username>/
 scp nginx.conf <username>@<host>:/home/<username>/
+scp .env <username>@<host>:/home/<username>/<foodgram-project>/infra/
 
 ```
 3. Установите docker и docker-compose:
@@ -52,7 +53,7 @@ sudo docker-compose exec backend python manage.py loaddata tags.json
 
 Cуперпользователь:
 ```
-Админ зона: http://localhost/admin
+Админ зона: 158.160.48.65/admin
 login: admin
 email: admin@mail.ru
 password: admin
