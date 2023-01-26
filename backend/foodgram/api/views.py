@@ -38,8 +38,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         # methods=('GET',),
-        permission_classes=(IsAuthenticated,),
-        pagination_class=None)
+        permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
         user = request.user
         if not user.shopping_cart.exists():
