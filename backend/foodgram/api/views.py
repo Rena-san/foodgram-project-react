@@ -37,7 +37,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        # methods=('GET',),
+        methods=('GET',),
         permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
         user = request.user
@@ -167,7 +167,7 @@ class ShoppingCartViewSet(BaseClassViewSets):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        user = self.request.user.id
+        user = self.request.user
         return ShoppingCart.objects.filter(user=user)
 
     @action(methods=('DELETE',), detail=True)
