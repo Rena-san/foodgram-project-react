@@ -38,9 +38,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=('GET',),
-        url_path='download_shopping_cart',
+        permission_classes=(IsAuthenticated,),
         pagination_class=None)
-    def download_file(self, request):
+    def download_shopping_cart(self, request):
         user = request.user
         if not user.shopping_cart.exists():
             return Response(
@@ -150,6 +150,7 @@ class FollowViewSet(CreateDestroyViewSet):
 
 class FavoriteRecipeViewSet(BaseClassViewSets):
     serializer_class = FavoriteRecipeSerializer
+    permission_classes = (IsAuthenticated,)
     queryset = FavoriteRecipe.objects.all()
     pagination_class = None
 
@@ -164,6 +165,7 @@ class FavoriteRecipeViewSet(BaseClassViewSets):
 
 class ShoppingCartViewSet(BaseClassViewSets):
     serializer_class = ShoppingCartSerializer
+    permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         user = self.request.user.id
