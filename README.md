@@ -14,7 +14,7 @@
 - Django
 - Python
 - Docker
-- -
+
 
 
 ### Запуск проекта:
