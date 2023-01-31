@@ -74,7 +74,7 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         passphrase: ${{ secrets.PASSPHRASE }}
         script: |
-            cd ~/matrosskin/foodgram-project-react/infra/
+            cd ~/infra/
 #            sudo docker-compose stop
 #            sudo docker-compose rm backend
 #            touch .env
