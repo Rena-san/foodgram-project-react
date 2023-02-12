@@ -41,6 +41,9 @@ sudo docker-compose exec backend python manage.py migrate
 5. Создайте суперюзера и соберите статику:
 ```
 sudo docker-compose exec backend python manage.py createsuperuser
+sudo docker-compose exec backend python manage.py makemigrations users
+sudo docker-compose exec backend python manage.py makemigration recipes
+sudo docker-compose exec backend python manage.py migrate
 sudo docker-compose exec backend python manage.py collectstatic --no-input
 ```
 6. Скопируйте предустановленные данные json:
